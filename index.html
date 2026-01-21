@@ -4,53 +4,20 @@
 <meta charset="UTF-8">
 <title>Painel Criativo – Claudia</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <link rel="manifest" href="manifest.json">
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f4f6fa;
-  margin: 0;
-  padding: 15px;
-}
-h1 {
-  text-align: center;
-}
-.tabs {
-  display: flex;
-  gap: 5px;
-  margin-bottom: 15px;
-}
-.tabs button {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  background: #dbe4ff;
-  border-radius: 8px;
-}
-.tabs button.active {
-  background: #4c6ef5;
-  color: white;
-}
-.section {
-  background: white;
-  padding: 15px;
-  border-radius: 10px;
-  margin-bottom: 15px;
-}
-input, select, textarea, button {
-  width: 100%;
-  padding: 8px;
-  margin: 5px 0;
-}
-.project {
-  border-bottom: 1px solid #eee;
-  padding: 10px 0;
-}
-.status {
-  font-weight: bold;
-}
+body { font-family: Arial; background:#f4f6fa; margin:0; padding:15px; }
+h1 { text-align:center; }
+.tabs { display:flex; gap:5px; margin-bottom:10px; }
+.tabs button { flex:1; padding:8px; border:none; border-radius:8px; background:#dbe4ff; }
+.tabs button.active { background:#4c6ef5; color:#fff; }
+.section { background:#fff; padding:15px; border-radius:10px; margin-bottom:15px; }
+input, select, textarea, button { width:100%; padding:8px; margin:5px 0; }
+.project { border-bottom:1px solid #eee; padding:10px 0; }
+.small-btn { width:auto; padding:6px 10px; margin-right:5px; }
+.finalizado { opacity:0.6; text-decoration:line-through; }
+.modo-aula .obs { display:none; }
 </style>
 </head>
 
@@ -71,26 +38,30 @@ input, select, textarea, button {
 <select id="status">
   <option>Ideia</option>
   <option>Em andamento</option>
-  <option>Finalizado</option>
 </select>
-<input id="acao" placeholder="Próxima ação (ex: criar roteiro)">
-<textarea id="obs" placeholder="Observações"></textarea>
+<input id="acao" placeholder="Próxima ação (ex: montar roteiro da aula)">
+<textarea id="obs" placeholder="Observações / objetivo educacional"></textarea>
 <button onclick="salvar()">Salvar</button>
 </div>
 
 <div class="section">
-<h2>📂 Projetos</h2>
+<button onclick="toggleAula()">🎓 Modo Aula</button>
+<button onclick="exportarTexto()">📄 Exportar Texto</button>
+<button onclick="exportarAudio()">🎧 Exportar Áudio</button>
+
 <select onchange="filtrar(this.value)">
   <option value="">Todos</option>
   <option>Ideia</option>
   <option>Em andamento</option>
   <option>Finalizado</option>
 </select>
+
 <div id="lista"></div>
 </div>
 
 <script>
 let tipoAtual = "Jogo";
+let modoAula = false;
 let projetos = JSON.parse(localStorage.getItem("projetos")) || [];
 
 function setTipo(tipo) {
@@ -113,25 +84,49 @@ function salvar() {
   mostrar();
 }
 
-function filtrar(statusFiltro) {
-  mostrar(statusFiltro);
+function concluir(index) {
+  projetos[index].status = "Finalizado";
+  localStorage.setItem("projetos", JSON.stringify(projetos));
+  mostrar();
 }
 
-function mostrar(filtro = "") {
+function filtrar(f) { mostrar(f); }
+
+function toggleAula() {
+  modoAula = !modoAula;
+  document.body.classList.toggle("modo-aula");
+}
+
+function mostrar(filtro="") {
   lista.innerHTML = "";
-  projetos
-    .filter(p => p.tipo === tipoAtual)
-    .filter(p => !filtro || p.status === filtro)
-    .forEach(p => {
-      lista.innerHTML += `
-        <div class="project">
-          <b>${p.nome}</b><br>
-          <span class="status">${p.status}</span><br>
-          👉 <i>${p.acao}</i><br>
-          ${p.obs}
-        </div>
-      `;
-    });
+  projetos.forEach((p,i) => {
+    if (p.tipo !== tipoAtual) return;
+    if (filtro && p.status !== filtro) return;
+    lista.innerHTML += `
+      <div class="project ${p.status==='Finalizado'?'finalizado':''}">
+        <b>${p.nome}</b><br>
+        Status: ${p.status}<br>
+        👉 ${p.acao}<br>
+        <div class="obs">${p.obs}</div>
+        <button class="small-btn" onclick="concluir(${i})">✔️ Concluir</button>
+      </div>
+    `;
+  });
+}
+
+function exportarTexto() {
+  let texto = projetos.map(p =>
+    `${p.nome} (${p.tipo}) - ${p.status}\nAção: ${p.acao}\n`
+  ).join("\n");
+  alert(texto);
+}
+
+function exportarAudio() {
+  let texto = projetos.map(p =>
+    `Projeto ${p.nome}. Próxima ação: ${p.acao}.`
+  ).join(" ");
+  let fala = new SpeechSynthesisUtterance(texto);
+  speechSynthesis.speak(fala);
 }
 
 mostrar();
