@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Painel Criativo – Claudia</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<body>
+
+<header>
+<h1>📂 Painel Criativo</h1>
+<p>Jogos • IA • Sites • Ideias</p>
+</header>
+
+<main>
+
+<section class="formulario">
+<h2>➕ Novo Projeto</h2>
+
+<input id="nome" placeholder="Nome do projeto">
+<select id="tipo">
+  <option>Jogo</option>
+  <option>IA</option>
+  <option>Site</option>
+  <option>Curso</option>
+  <option>Ideia</option>
+</select>
+
+<select id="status">
+  <option>Ideia</option>
+  <option>Em andamento</option>
+  <option>Finalizado</option>
+</select>
+
+<textarea id="obs" placeholder="Observações / próximos passos"></textarea>
+
+<button onclick="salvarProjeto()">Salvar projeto</button>
+</section>
+
+<section class="lista">
+<h2>📁 Meus Projetos</h2>
+<div id="listaProjetos"></div>
+</section>
+
+</main>
+
+<script src="assets/js/app.js"></script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
+</body>
+</html>
