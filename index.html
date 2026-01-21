@@ -2,10 +2,8 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Painel Criativo – Claudia</title>
+<title>Agenda de Projetos</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
-<link rel="manifest" href="manifest.json">
 
 <style>
 body {
@@ -17,186 +15,144 @@ body {
 h1 {
   text-align: center;
 }
-.tabs {
-  display: flex;
-  gap: 5px;
-  margin-bottom: 10px;
-}
-.tabs button {
-  flex: 1;
-  padding: 8px;
-  border: none;
-  border-radius: 8px;
-  background: #dbe4ff;
-}
-.tabs button.active {
-  background: #4c6ef5;
-  color: white;
-}
 .section {
-  background: white;
+  background: #fff;
   padding: 15px;
   border-radius: 10px;
   margin-bottom: 15px;
 }
-input, select, textarea, button {
+input, select, button {
   width: 100%;
   padding: 8px;
   margin: 5px 0;
 }
-.project {
-  border-bottom: 1px solid #eee;
-  padding: 10px 0;
+.event {
+  padding: 6px;
+  margin: 5px 0;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
 }
-.small-btn {
-  width: auto;
-  padding: 6px 10px;
-  margin-right: 5px;
+.day {
+  margin-bottom: 10px;
 }
-.finalizado {
-  opacity: 0.6;
-  text-decoration: line-through;
-}
-.modo-aula .obs {
-  display: none;
+.day h3 {
+  margin-bottom: 5px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>📘 Painel Criativo</h1>
-
-<div class="tabs">
-  <button onclick="setTipo('Jogo')" class="active">🎮 Jogos</button>
-  <button onclick="setTipo('IA')">🤖 IA</button>
-  <button onclick="setTipo('Site')">🌐 Sites</button>
-  <button onclick="setTipo('Ideia')">💡 Ideias</button>
-</div>
+<h1>🗓️ Agenda Semanal</h1>
 
 <div class="section">
 <h2>➕ Novo Projeto</h2>
-<input id="nome" placeholder="Nome do projeto">
-<select id="status">
-  <option>Ideia</option>
-  <option>Em andamento</option>
-</select>
-<input id="acao" placeholder="Próxima ação (ex: criar roteiro da aula)">
-<textarea id="obs" placeholder="Observações / objetivo educacional"></textarea>
-<button onclick="salvar()">Salvar</button>
+<input id="projNome" placeholder="Nome do projeto">
+<input type="color" id="projCor">
+<button onclick="criarProjeto()">Criar Projeto</button>
 </div>
 
 <div class="section">
-<button onclick="toggleAula()">🎓 Modo Aula</button>
-<button onclick="exportarTexto()">📄 Exportar Texto</button>
-<button onclick="exportarAudio()">🎧 Exportar Áudio</button>
-<button onclick="gerarPlano()">🧠 Gerar Plano de Aula</button>
+<h2>📆 Criar Cronograma</h2>
+<select id="projSelect"></select>
 
-<select onchange="filtrar(this.value)">
-  <option value="">Todos</option>
-  <option>Ideia</option>
-  <option>Em andamento</option>
-  <option>Finalizado</option>
+<label>Dias da semana</label>
+<select id="dias" multiple>
+  <option value="1">Segunda</option>
+  <option value="2">Terça</option>
+  <option value="3">Quarta</option>
+  <option value="4">Quinta</option>
+  <option value="5">Sexta</option>
 </select>
 
-<div id="lista"></div>
+<input type="number" id="quantidade" placeholder="Quantidade de encontros">
+<input type="date" id="inicio">
+
+<select id="tipo">
+  <option>Aula</option>
+  <option>Reunião</option>
+</select>
+
+<button onclick="gerarCronograma()">Gerar</button>
+</div>
+
+<div class="section">
+<h2>📋 Semana Atual</h2>
+<div id="agenda"></div>
 </div>
 
 <script>
-let tipoAtual = "Jogo";
-let modoAula = false;
 let projetos = JSON.parse(localStorage.getItem("projetos")) || [];
-
-function setTipo(tipo) {
-  tipoAtual = tipo;
-  document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
-  event.target.classList.add("active");
-  mostrar();
-}
+let eventos = JSON.parse(localStorage.getItem("eventos")) || [];
 
 function salvar() {
+  localStorage.setItem("projetos", JSON.stringify(projetos));
+  localStorage.setItem("eventos", JSON.stringify(eventos));
+}
+
+function criarProjeto() {
   projetos.push({
-    nome: nome.value,
-    tipo: tipoAtual,
-    status: status.value,
-    acao: acao.value,
-    obs: obs.value
+    nome: projNome.value,
+    cor: projCor.value
   });
-  localStorage.setItem("projetos", JSON.stringify(projetos));
-  nome.value = acao.value = obs.value = "";
-  mostrar();
+  salvar();
+  atualizarSelect();
 }
 
-function concluir(index) {
-  projetos[index].status = "Finalizado";
-  localStorage.setItem("projetos", JSON.stringify(projetos));
-  mostrar();
-}
-
-function filtrar(filtro) {
-  mostrar(filtro);
-}
-
-function toggleAula() {
-  modoAula = !modoAula;
-  document.body.classList.toggle("modo-aula");
-}
-
-function mostrar(filtro="") {
-  lista.innerHTML = "";
-  projetos.forEach((p, i) => {
-    if (p.tipo !== tipoAtual) return;
-    if (filtro && p.status !== filtro) return;
-
-    lista.innerHTML += `
-      <div class="project ${p.status==='Finalizado'?'finalizado':''}">
-        <b>${p.nome}</b><br>
-        Status: ${p.status}<br>
-        👉 ${p.acao}<br>
-        <div class="obs">${p.obs}</div>
-        <button class="small-btn" onclick="concluir(${i})">✔️ Concluir</button>
-      </div>
-    `;
+function atualizarSelect() {
+  projSelect.innerHTML = "";
+  projetos.forEach((p,i)=>{
+    projSelect.innerHTML += `<option value="${i}">${p.nome}</option>`;
   });
 }
 
-function exportarTexto() {
-  let texto = projetos.map(p =>
-    `${p.nome} (${p.tipo}) - ${p.status}\nPróxima ação: ${p.acao}\n`
-  ).join("\n");
-  alert(texto);
+function gerarCronograma() {
+  let proj = projetos[projSelect.value];
+  let diasSel = Array.from(dias.selectedOptions).map(o=>parseInt(o.value));
+  let qtd = parseInt(quantidade.value);
+  let data = new Date(inicio.value);
+  let count = 0;
+
+  while(count < qtd) {
+    if(diasSel.includes(data.getDay())) {
+      eventos.push({
+        data: data.toISOString().slice(0,10),
+        nome: proj.nome,
+        tipo: tipo.value,
+        cor: proj.cor
+      });
+      count++;
+    }
+    data.setDate(data.getDate()+1);
+  }
+  salvar();
+  mostrarSemana();
 }
 
-function exportarAudio() {
-  let texto = projetos.map(p =>
-    `Projeto ${p.nome}. Próxima ação: ${p.acao}.`
-  ).join(" ");
-  let fala = new SpeechSynthesisUtterance(texto);
-  speechSynthesis.speak(fala);
+function mostrarSemana() {
+  agenda.innerHTML = "";
+  let hoje = new Date();
+  let inicioSemana = new Date(hoje);
+  inicioSemana.setDate(hoje.getDate() - hoje.getDay() + 1);
+
+  for(let i=0;i<5;i++) {
+    let d = new Date(inicioSemana);
+    d.setDate(inicioSemana.getDate()+i);
+    let dataStr = d.toISOString().slice(0,10);
+
+    agenda.innerHTML += `<div class="day"><h3>${d.toLocaleDateString()}</h3></div>`;
+    eventos.filter(e=>e.data===dataStr).forEach(e=>{
+      agenda.innerHTML += `
+        <div class="event" style="background:${e.cor}">
+          ${e.nome} – ${e.tipo}
+        </div>`;
+    });
+  }
 }
 
-function gerarPlano() {
-  let plano = projetos
-    .filter(p => p.tipo === tipoAtual)
-    .map(p => `
-PLANO DE AULA
-Tema: ${p.nome}
-Objetivo: Desenvolver compreensão aplicada do tema.
-Conteúdo: ${p.obs || "Conteúdo teórico-prático relacionado ao tema."}
-Estratégia: Aula dialogada com recurso audiovisual.
-Atividade: ${p.acao}
-Avaliação: Participação e aplicação prática.
-`)
-    .join("\n----------------\n");
-
-  alert(plano);
-}
-
-mostrar();
-
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js");
-}
+atualizarSelect();
+mostrarSemana();
 </script>
 
 </body>
