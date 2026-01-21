@@ -4,199 +4,150 @@
 <meta charset="UTF-8">
 <title>Agenda Mensal</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#1f6fff">
-<link rel="manifest" href="manifest.json">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
-body {
-  font-family: system-ui, Arial, sans-serif;
-  background: #f4f6fa;
-  margin: 0;
-  padding: 15px;
-}
-
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-select {
-  padding: 6px;
-  border-radius: 8px;
-}
-
-.calendar {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-}
-
-.day-name {
-  text-align: center;
-  font-size: 12px;
-  color: #666;
-}
-
-.day {
-  background: #fff;
-  border-radius: 10px;
-  min-height: 70px;
-  padding: 5px;
-  cursor: pointer;
-  position: relative;
-}
-
-.day span {
-  font-size: 12px;
-  color: #444;
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 3px;
-}
-
-.panel {
-  background: #fff;
-  border-radius: 15px;
-  padding: 15px;
-  margin-top: 15px;
-}
-
-.event {
-  margin-bottom: 12px;
-}
-
-.btn {
-  display: inline-block;
-  background: #1f6fff;
-  color: #fff;
-  padding: 6px 12px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-size: 14px;
-}
+* { font-family: 'Outfit', system-ui, sans-serif; }
+.calendar-day { cursor:pointer; transition:0.2s }
+.calendar-day:hover { transform:scale(1.05) }
+.event-dot { width:8px;height:8px;border-radius:999px;display:inline-block;margin-right:3px }
 </style>
 </head>
 
-<body>
+<body class="bg-slate-100 min-h-screen">
 
-<header>
-  <h2 id="monthTitle"></h2>
-  <select id="monthSelect"></select>
+<div class="max-w-4xl mx-auto p-4">
+
+<!-- HEADER -->
+<header class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-bold">📅 Agenda Mensal</h1>
+  <div class="flex gap-2">
+    <button onclick="changeMonth(-1)" class="px-3 py-1 bg-white rounded">◀</button>
+    <button onclick="goToday()" class="px-3 py-1 bg-blue-500 text-white rounded">Hoje</button>
+    <button onclick="changeMonth(1)" class="px-3 py-1 bg-white rounded">▶</button>
+  </div>
 </header>
 
-<div class="calendar" id="calendar"></div>
+<h2 id="monthTitle" class="text-center text-xl font-semibold mb-3"></h2>
 
-<div class="panel" id="dayPanel">
-  <h3 id="dayTitle">Selecione um dia</h3>
-  <div id="dayEvents"></div>
+<!-- CALENDÁRIO -->
+<div class="grid grid-cols-7 gap-2 mb-6" id="calendar"></div>
+
+<!-- PAINEL DO DIA -->
+<div id="dayPanel" class="hidden bg-white rounded-xl p-4 mb-6 shadow">
+  <h3 id="dayTitle" class="font-bold mb-3"></h3>
+  <div id="dayEvents" class="space-y-3"></div>
 </div>
 
-<hr>
+<!-- FORMULÁRIO -->
+<div class="bg-white rounded-xl p-4 shadow">
+<h3 class="font-bold mb-3">➕ Criar evento</h3>
 
-<h3>➕ Criar evento</h3>
+<input id="project" placeholder="Projeto" class="w-full mb-2 p-2 border rounded">
+<input type="color" id="color" value="#3b82f6" class="mb-2">
 
-<input id="proj" placeholder="Projeto">
-<input type="color" id="color">
-<select id="type">
+<select id="type" class="w-full mb-2 p-2 border rounded">
   <option>Aula</option>
   <option>Reunião</option>
 </select>
-<input id="withWho" placeholder="Com quem é a reunião (opcional)">
-<input id="link" placeholder="Link do site (opcional)">
-<input type="date" id="date">
-<button onclick="addEvent()">Adicionar</button>
+
+<input id="withWho" placeholder="Com quem é a reunião (opcional)" class="w-full mb-2 p-2 border rounded">
+<input id="link" placeholder="Link do site (opcional)" class="w-full mb-2 p-2 border rounded">
+
+<label class="text-sm font-semibold">Datas exatas (separadas por vírgula)</label>
+<input id="dates" placeholder="03/07/2026, 10/07/2026, 17/07/2026" class="w-full mb-3 p-2 border rounded">
+
+<button onclick="addEvents()" class="w-full bg-blue-500 text-white py-2 rounded">
+Criar eventos
+</button>
+</div>
+
+</div>
 
 <script>
-const events = JSON.parse(localStorage.getItem("events")) || [];
-const calendar = document.getElementById("calendar");
-const monthSelect = document.getElementById("monthSelect");
-const monthTitle = document.getElementById("monthTitle");
-const dayPanel = document.getElementById("dayEvents");
-const dayTitle = document.getElementById("dayTitle");
-
 let current = new Date();
+let events = JSON.parse(localStorage.getItem("events")||"[]");
 
-function save() {
-  localStorage.setItem("events", JSON.stringify(events));
+function save(){ localStorage.setItem("events",JSON.stringify(events)); }
+
+function render(){
+const cal=document.getElementById("calendar");
+cal.innerHTML="";
+const y=current.getFullYear(), m=current.getMonth();
+document.getElementById("monthTitle").textContent=
+current.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+
+const first=new Date(y,m,1).getDay();
+const days=new Date(y,m+1,0).getDate();
+
+["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].forEach(d=>{
+cal.innerHTML+=`<div class="text-center font-semibold">${d}</div>`;
+});
+
+for(let i=0;i<first;i++) cal.innerHTML+="<div></div>";
+
+for(let d=1;d<=days;d++){
+const date=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+const dayEvents=events.filter(e=>e.date===date);
+cal.innerHTML+=`
+<div onclick="openDay('${date}')"
+class="calendar-day bg-white rounded p-2 text-sm">
+<b>${d}</b><br>
+${dayEvents.map(e=>`<span class="event-dot" style="background:${e.color}"></span>`).join("")}
+</div>`;
+}
 }
 
-function setupMonths() {
-  for (let i = 0; i < 12; i++) {
-    let opt = document.createElement("option");
-    opt.value = i;
-    opt.text = new Date(2026, i).toLocaleString("pt-BR", { month: "long" });
-    monthSelect.appendChild(opt);
-  }
-  monthSelect.value = current.getMonth();
+function openDay(date){
+document.getElementById("dayPanel").classList.remove("hidden");
+document.getElementById("dayTitle").textContent=
+new Date(date+"T12:00").toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
+
+const box=document.getElementById("dayEvents");
+box.innerHTML="";
+events.filter(e=>e.date===date).forEach((e,i)=>{
+box.innerHTML+=`
+<div class="border-l-4 p-3 rounded" style="border-color:${e.color}">
+<b>${e.project}</b><br>
+${e.type}<br>
+${e.withWho?`👤 ${e.withWho}<br>`:""}
+${e.link?`<a href="${e.link}" target="_blank" class="text-blue-600">🔗 Abrir site</a><br>`:""}
+<button onclick="removeEvent(${i})" class="text-red-500 text-sm mt-1">Excluir</button>
+</div>`;
+});
 }
 
-function renderCalendar() {
-  calendar.innerHTML = "";
-  const year = current.getFullYear();
-  const month = current.getMonth();
-  monthTitle.textContent = current.toLocaleString("pt-BR", { month: "long", year: "numeric" });
-
-  const first = new Date(year, month, 1).getDay();
-  const days = new Date(year, month + 1, 0).getDate();
-
-  ["D","S","T","Q","Q","S","S"].forEach(d => {
-    calendar.innerHTML += `<div class="day-name">${d}</div>`;
-  });
-
-  for (let i = 0; i < first; i++) calendar.innerHTML += `<div></div>`;
-
-  for (let d = 1; d <= days; d++) {
-    const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-    const dayEvents = events.filter(e => e.date === dateStr);
-    calendar.innerHTML += `
-      <div class="day" onclick="openDay('${dateStr}')">
-        <span>${d}</span><br>
-        ${dayEvents.map(e => `<span class="dot" style="background:${e.color}"></span>`).join("")}
-      </div>`;
-  }
+function removeEvent(i){
+events.splice(i,1);
+save(); render();
+document.getElementById("dayPanel").classList.add("hidden");
 }
 
-function openDay(date) {
-  dayTitle.textContent = new Date(date).toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long" });
-  dayPanel.innerHTML = "";
-  events.filter(e => e.date === date).forEach(e => {
-    dayPanel.innerHTML += `
-      <div class="event">
-        <strong style="color:${e.color}">${e.project}</strong><br>
-        ${e.type}<br>
-        ${e.withWho ? "👤 Com: " + e.withWho + "<br>" : ""}
-        ${e.link ? `<a class="btn" href="${e.link}" target="_blank">🔗 Abrir site</a>` : ""}
-      </div>`;
-  });
+function addEvents(){
+const p=project.value.trim();
+if(!p) return alert("Informe o projeto");
+const ds=dates.value.split(",").map(d=>d.trim());
+ds.forEach(d=>{
+const [dia,mes,ano]=d.split("/");
+events.push({
+project:p,
+color:color.value,
+type:type.value,
+withWho:withWho.value,
+link:link.value,
+date:`${ano}-${mes}-${dia}`
+});
+});
+save();
+dates.value="";
+render();
 }
 
-function addEvent() {
-  events.push({
-    project: proj.value,
-    color: color.value || "#1f6fff",
-    type: type.value,
-    withWho: withWho.value,
-    link: link.value,
-    date: date.value
-  });
-  save();
-  renderCalendar();
-}
+function changeMonth(n){ current.setMonth(current.getMonth()+n); render(); }
+function goToday(){ current=new Date(); render(); }
 
-monthSelect.onchange = e => {
-  current.setMonth(e.target.value);
-  renderCalendar();
-};
-
-setupMonths();
-renderCalendar();
+render();
 </script>
 
 </body>
