@@ -1,177 +1,202 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
+<meta charset="UTF-8">
+<title>Agenda Mensal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f6fff">
+<link rel="manifest" href="manifest.json">
 
-  <title>Agenda Semanal</title>
+<style>
+body {
+  font-family: system-ui, Arial, sans-serif;
+  background: #f4f6fa;
+  margin: 0;
+  padding: 15px;
+}
 
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#4c6ef5">
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
 
-  <!-- MANIFEST (OBRIGATÓRIO PARA APK) -->
-  <link rel="manifest" href="manifest.json">
+select {
+  padding: 6px;
+  border-radius: 8px;
+}
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6fa;
-      margin: 0;
-      padding: 15px;
-    }
-    h1 {
-      text-align: center;
-    }
-    .section {
-      background: #fff;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 15px;
-    }
-    input, select, button {
-      width: 100%;
-      padding: 8px;
-      margin: 5px 0;
-    }
-    .event {
-      padding: 6px;
-      margin: 5px 0;
-      border-radius: 6px;
-      color: #fff;
-      font-size: 14px;
-    }
-    .day {
-      margin-bottom: 10px;
-    }
-    .day h3 {
-      margin-bottom: 5px;
-    }
-  </style>
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.day-name {
+  text-align: center;
+  font-size: 12px;
+  color: #666;
+}
+
+.day {
+  background: #fff;
+  border-radius: 10px;
+  min-height: 70px;
+  padding: 5px;
+  cursor: pointer;
+  position: relative;
+}
+
+.day span {
+  font-size: 12px;
+  color: #444;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 3px;
+}
+
+.panel {
+  background: #fff;
+  border-radius: 15px;
+  padding: 15px;
+  margin-top: 15px;
+}
+
+.event {
+  margin-bottom: 12px;
+}
+
+.btn {
+  display: inline-block;
+  background: #1f6fff;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+}
+</style>
 </head>
 
 <body>
 
-<h1>🗓️ Agenda Semanal</h1>
+<header>
+  <h2 id="monthTitle"></h2>
+  <select id="monthSelect"></select>
+</header>
 
-<div class="section">
-  <h2>➕ Novo Projeto</h2>
-  <input id="projNome" placeholder="Nome do projeto">
-  <input type="color" id="projCor">
-  <button onclick="criarProjeto()">Criar Projeto</button>
+<div class="calendar" id="calendar"></div>
+
+<div class="panel" id="dayPanel">
+  <h3 id="dayTitle">Selecione um dia</h3>
+  <div id="dayEvents"></div>
 </div>
 
-<div class="section">
-  <h2>📆 Criar Cronograma</h2>
+<hr>
 
-  <select id="projSelect"></select>
+<h3>➕ Criar evento</h3>
 
-  <label>Dias da semana</label>
-  <select id="dias" multiple>
-    <option value="1">Segunda</option>
-    <option value="2">Terça</option>
-    <option value="3">Quarta</option>
-    <option value="4">Quinta</option>
-    <option value="5">Sexta</option>
-  </select>
-
-  <input type="number" id="quantidade" placeholder="Quantidade de encontros">
-  <input type="date" id="inicio">
-
-  <select id="tipo">
-    <option>Aula</option>
-    <option>Reunião</option>
-  </select>
-
-  <button onclick="gerarCronograma()">Gerar</button>
-</div>
-
-<div class="section">
-  <h2>📋 Semana Atual</h2>
-  <div id="agenda"></div>
-</div>
+<input id="proj" placeholder="Projeto">
+<input type="color" id="color">
+<select id="type">
+  <option>Aula</option>
+  <option>Reunião</option>
+</select>
+<input id="withWho" placeholder="Com quem é a reunião (opcional)">
+<input id="link" placeholder="Link do site (opcional)">
+<input type="date" id="date">
+<button onclick="addEvent()">Adicionar</button>
 
 <script>
-  let projetos = JSON.parse(localStorage.getItem("projetos")) || [];
-  let eventos = JSON.parse(localStorage.getItem("eventos")) || [];
+const events = JSON.parse(localStorage.getItem("events")) || [];
+const calendar = document.getElementById("calendar");
+const monthSelect = document.getElementById("monthSelect");
+const monthTitle = document.getElementById("monthTitle");
+const dayPanel = document.getElementById("dayEvents");
+const dayTitle = document.getElementById("dayTitle");
 
-  function salvar() {
-    localStorage.setItem("projetos", JSON.stringify(projetos));
-    localStorage.setItem("eventos", JSON.stringify(eventos));
+let current = new Date();
+
+function save() {
+  localStorage.setItem("events", JSON.stringify(events));
+}
+
+function setupMonths() {
+  for (let i = 0; i < 12; i++) {
+    let opt = document.createElement("option");
+    opt.value = i;
+    opt.text = new Date(2026, i).toLocaleString("pt-BR", { month: "long" });
+    monthSelect.appendChild(opt);
   }
+  monthSelect.value = current.getMonth();
+}
 
-  function criarProjeto() {
-    if (!projNome.value) return;
+function renderCalendar() {
+  calendar.innerHTML = "";
+  const year = current.getFullYear();
+  const month = current.getMonth();
+  monthTitle.textContent = current.toLocaleString("pt-BR", { month: "long", year: "numeric" });
 
-    projetos.push({
-      nome: projNome.value,
-      cor: projCor.value || "#4c6ef5"
-    });
+  const first = new Date(year, month, 1).getDay();
+  const days = new Date(year, month + 1, 0).getDate();
 
-    projNome.value = "";
-    salvar();
-    atualizarSelect();
+  ["D","S","T","Q","Q","S","S"].forEach(d => {
+    calendar.innerHTML += `<div class="day-name">${d}</div>`;
+  });
+
+  for (let i = 0; i < first; i++) calendar.innerHTML += `<div></div>`;
+
+  for (let d = 1; d <= days; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const dayEvents = events.filter(e => e.date === dateStr);
+    calendar.innerHTML += `
+      <div class="day" onclick="openDay('${dateStr}')">
+        <span>${d}</span><br>
+        ${dayEvents.map(e => `<span class="dot" style="background:${e.color}"></span>`).join("")}
+      </div>`;
   }
+}
 
-  function atualizarSelect() {
-    projSelect.innerHTML = "";
-    projetos.forEach((p, i) => {
-      projSelect.innerHTML += `<option value="${i}">${p.nome}</option>`;
-    });
-  }
+function openDay(date) {
+  dayTitle.textContent = new Date(date).toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long" });
+  dayPanel.innerHTML = "";
+  events.filter(e => e.date === date).forEach(e => {
+    dayPanel.innerHTML += `
+      <div class="event">
+        <strong style="color:${e.color}">${e.project}</strong><br>
+        ${e.type}<br>
+        ${e.withWho ? "👤 Com: " + e.withWho + "<br>" : ""}
+        ${e.link ? `<a class="btn" href="${e.link}" target="_blank">🔗 Abrir site</a>` : ""}
+      </div>`;
+  });
+}
 
-  function gerarCronograma() {
-    if (!inicio.value || !quantidade.value) return;
+function addEvent() {
+  events.push({
+    project: proj.value,
+    color: color.value || "#1f6fff",
+    type: type.value,
+    withWho: withWho.value,
+    link: link.value,
+    date: date.value
+  });
+  save();
+  renderCalendar();
+}
 
-    let proj = projetos[projSelect.value];
-    let diasSel = Array.from(dias.selectedOptions).map(o => parseInt(o.value));
-    let qtd = parseInt(quantidade.value);
-    let data = new Date(inicio.value);
-    let count = 0;
+monthSelect.onchange = e => {
+  current.setMonth(e.target.value);
+  renderCalendar();
+};
 
-    while (count < qtd) {
-      if (diasSel.includes(data.getDay())) {
-        eventos.push({
-          data: data.toISOString().slice(0, 10),
-          nome: proj.nome,
-          tipo: tipo.value,
-          cor: proj.cor
-        });
-        count++;
-      }
-      data.setDate(data.getDate() + 1);
-    }
-
-    salvar();
-    mostrarSemana();
-  }
-
-  function mostrarSemana() {
-    agenda.innerHTML = "";
-
-    let hoje = new Date();
-    let inicioSemana = new Date(hoje);
-    inicioSemana.setDate(hoje.getDate() - hoje.getDay() + 1);
-
-    for (let i = 0; i < 5; i++) {
-      let d = new Date(inicioSemana);
-      d.setDate(inicioSemana.getDate() + i);
-      let dataStr = d.toISOString().slice(0, 10);
-
-      agenda.innerHTML += `<div class="day"><h3>${d.toLocaleDateString()}</h3></div>`;
-
-      eventos
-        .filter(e => e.data === dataStr)
-        .forEach(e => {
-          agenda.innerHTML += `
-            <div class="event" style="background:${e.cor}">
-              ${e.nome} – ${e.tipo}
-            </div>
-          `;
-        });
-    }
-  }
-
-  atualizarSelect();
-  mostrarSemana();
+setupMonths();
+renderCalendar();
 </script>
 
 </body>
