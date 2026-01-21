@@ -4,20 +4,62 @@
 <meta charset="UTF-8">
 <title>Painel Criativo – Claudia</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <link rel="manifest" href="manifest.json">
 
 <style>
-body { font-family: Arial; background:#f4f6fa; margin:0; padding:15px; }
-h1 { text-align:center; }
-.tabs { display:flex; gap:5px; margin-bottom:10px; }
-.tabs button { flex:1; padding:8px; border:none; border-radius:8px; background:#dbe4ff; }
-.tabs button.active { background:#4c6ef5; color:#fff; }
-.section { background:#fff; padding:15px; border-radius:10px; margin-bottom:15px; }
-input, select, textarea, button { width:100%; padding:8px; margin:5px 0; }
-.project { border-bottom:1px solid #eee; padding:10px 0; }
-.small-btn { width:auto; padding:6px 10px; margin-right:5px; }
-.finalizado { opacity:0.6; text-decoration:line-through; }
-.modo-aula .obs { display:none; }
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6fa;
+  margin: 0;
+  padding: 15px;
+}
+h1 {
+  text-align: center;
+}
+.tabs {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.tabs button {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  background: #dbe4ff;
+}
+.tabs button.active {
+  background: #4c6ef5;
+  color: white;
+}
+.section {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+input, select, textarea, button {
+  width: 100%;
+  padding: 8px;
+  margin: 5px 0;
+}
+.project {
+  border-bottom: 1px solid #eee;
+  padding: 10px 0;
+}
+.small-btn {
+  width: auto;
+  padding: 6px 10px;
+  margin-right: 5px;
+}
+.finalizado {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+.modo-aula .obs {
+  display: none;
+}
 </style>
 </head>
 
@@ -39,7 +81,7 @@ input, select, textarea, button { width:100%; padding:8px; margin:5px 0; }
   <option>Ideia</option>
   <option>Em andamento</option>
 </select>
-<input id="acao" placeholder="Próxima ação (ex: montar roteiro da aula)">
+<input id="acao" placeholder="Próxima ação (ex: criar roteiro da aula)">
 <textarea id="obs" placeholder="Observações / objetivo educacional"></textarea>
 <button onclick="salvar()">Salvar</button>
 </div>
@@ -48,6 +90,7 @@ input, select, textarea, button { width:100%; padding:8px; margin:5px 0; }
 <button onclick="toggleAula()">🎓 Modo Aula</button>
 <button onclick="exportarTexto()">📄 Exportar Texto</button>
 <button onclick="exportarAudio()">🎧 Exportar Áudio</button>
+<button onclick="gerarPlano()">🧠 Gerar Plano de Aula</button>
 
 <select onchange="filtrar(this.value)">
   <option value="">Todos</option>
@@ -90,7 +133,9 @@ function concluir(index) {
   mostrar();
 }
 
-function filtrar(f) { mostrar(f); }
+function filtrar(filtro) {
+  mostrar(filtro);
+}
 
 function toggleAula() {
   modoAula = !modoAula;
@@ -99,9 +144,10 @@ function toggleAula() {
 
 function mostrar(filtro="") {
   lista.innerHTML = "";
-  projetos.forEach((p,i) => {
+  projetos.forEach((p, i) => {
     if (p.tipo !== tipoAtual) return;
     if (filtro && p.status !== filtro) return;
+
     lista.innerHTML += `
       <div class="project ${p.status==='Finalizado'?'finalizado':''}">
         <b>${p.nome}</b><br>
@@ -116,7 +162,7 @@ function mostrar(filtro="") {
 
 function exportarTexto() {
   let texto = projetos.map(p =>
-    `${p.nome} (${p.tipo}) - ${p.status}\nAção: ${p.acao}\n`
+    `${p.nome} (${p.tipo}) - ${p.status}\nPróxima ação: ${p.acao}\n`
   ).join("\n");
   alert(texto);
 }
@@ -127,6 +173,23 @@ function exportarAudio() {
   ).join(" ");
   let fala = new SpeechSynthesisUtterance(texto);
   speechSynthesis.speak(fala);
+}
+
+function gerarPlano() {
+  let plano = projetos
+    .filter(p => p.tipo === tipoAtual)
+    .map(p => `
+PLANO DE AULA
+Tema: ${p.nome}
+Objetivo: Desenvolver compreensão aplicada do tema.
+Conteúdo: ${p.obs || "Conteúdo teórico-prático relacionado ao tema."}
+Estratégia: Aula dialogada com recurso audiovisual.
+Atividade: ${p.acao}
+Avaliação: Participação e aplicação prática.
+`)
+    .join("\n----------------\n");
+
+  alert(plano);
 }
 
 mostrar();
