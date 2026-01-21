@@ -6,11 +6,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
 * { font-family: 'Outfit', system-ui, sans-serif; }
 .calendar-day { cursor:pointer; transition:0.2s }
 .calendar-day:hover { transform:scale(1.05) }
-.selected-day { outline:3px solid #3b82f6; background:#eff6ff }
+.selected-day { background:#e0f2fe; outline:3px solid #3b82f6 }
 .event-dot { width:8px;height:8px;border-radius:999px;display:inline-block;margin-right:3px }
 </style>
 </head>
@@ -62,72 +63,98 @@ Criar eventos
 </div>
 
 <script>
-let current=new Date();
-let events=JSON.parse(localStorage.getItem("events")||"[]");
-let selectedDates=[];
+let current = new Date();
+let events = JSON.parse(localStorage.getItem("events") || "[]");
+let selectedDates = [];
 
-function save(){ localStorage.setItem("events",JSON.stringify(events)); }
+function save(){
+  localStorage.setItem("events", JSON.stringify(events));
+}
 
 function render(){
-const cal=document.getElementById("calendar");
-cal.innerHTML="";
-const y=current.getFullYear(), m=current.getMonth();
-document.getElementById("monthTitle").textContent=
-current.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+  const cal = document.getElementById("calendar");
+  cal.innerHTML = "";
 
-["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].forEach(d=>{
-cal.innerHTML+=`<div class="text-center font-semibold">${d}</div>`;
-});
+  const y = current.getFullYear();
+  const m = current.getMonth();
 
-const first=new Date(y,m,1).getDay();
-const days=new Date(y,m+1,0).getDate();
-for(let i=0;i<first;i++) cal.innerHTML+="<div></div>";
+  document.getElementById("monthTitle").textContent =
+    current.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
 
-for(let d=1;d<=days;d++){
-const date=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-const isSelected=selectedDates.includes(date);
-const dayEvents=events.filter(e=>e.date===date);
-cal.innerHTML+=`
-<div onclick="toggleDate('${date}',this)"
-class="calendar-day bg-white rounded p-2 text-sm ${isSelected?'selected-day':''}">
-<b>${d}</b><br>
-${dayEvents.map(e=>`<span class="event-dot" style="background:${e.color}"></span>`).join("")}
-</div>`;
+  ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].forEach(d=>{
+    cal.innerHTML += `<div class="text-center font-semibold">${d}</div>`;
+  });
+
+  const first = new Date(y,m,1).getDay();
+  const days = new Date(y,m+1,0).getDate();
+
+  for(let i=0;i<first;i++) cal.innerHTML += "<div></div>";
+
+  for(let d=1; d<=days; d++){
+    const date = `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const isSelected = selectedDates.includes(date);
+    const dayEvents = events.filter(e => e.date === date);
+
+    cal.innerHTML += `
+      <div onclick="toggleDate('${date}')"
+        class="calendar-day bg-white rounded p-2 text-sm ${isSelected?'selected-day':''}">
+        <b>${d}</b><br>
+        ${dayEvents.map(e=>`<span class="event-dot" style="background:${e.color}"></span>`).join("")}
+      </div>
+    `;
+  }
 }
-}
 
-function toggleDate(date,el){
-if(selectedDates.includes(date)){
-selectedDates=selectedDates.filter(d=>d!==date);
-el.classList.remove("selected-day");
-}else{
-selectedDates.push(date);
-el.classList.add("selected-day");
-}
+function toggleDate(date){
+  if(selectedDates.includes(date)){
+    selectedDates = selectedDates.filter(d => d !== date);
+  } else {
+    selectedDates.push(date);
+  }
+  render();
 }
 
 function addEvents(){
-if(!project.value.trim()) return alert("Informe o projeto");
-if(selectedDates.length===0) return alert("Selecione pelo menos um dia no calendário");
+  if(!project.value.trim()){
+    alert("Informe o projeto");
+    return;
+  }
+  if(selectedDates.length === 0){
+    alert("Selecione pelo menos um dia no calendário");
+    return;
+  }
 
-selectedDates.forEach(date=>{
-events.push({
-project:project.value,
-color:color.value,
-type:type.value,
-withWho:withWho.value,
-link:link.value,
-date
-});
-});
+  selectedDates.forEach(date=>{
+    events.push({
+      project: project.value,
+      color: color.value,
+      type: type.value,
+      withWho: withWho.value,
+      link: link.value,
+      date
+    });
+  });
 
-selectedDates=[];
-save();
-render();
+  selectedDates = [];
+  project.value = "";
+  withWho.value = "";
+  link.value = "";
+
+  save();
+  render();
 }
 
-function changeMonth(n){ current.setMonth(current.getMonth()+n); selectedDates=[]; render(); }
-function goToday(){ current=new Date(); selectedDates=[]; render(); }
+function changeMonth(n){
+  current.setMonth(current.getMonth() + n);
+  selectedDates = [];
+  render();
+}
+
+function goToday(){
+  current = new Date();
+  selectedDates = [];
+  render();
+}
 
 render();
 </script>
